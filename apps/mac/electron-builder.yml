@@ -1,0 +1,80 @@
+appId: at.peab.md-view
+productName: md.view
+copyright: Copyright © 2026 Peter
+electronVersion: 32.3.3
+directories:
+  output: release
+  buildResources: ../../resources
+files:
+  - dist-electron/**/*
+  - package.json
+  - "!**/*.map"
+asar: true
+
+# Brand the .md file icon in Finder with the md.view logo
+fileAssociations:
+  - ext: md
+    name: Markdown Document
+    role: Viewer
+    icon: icon-doc.icns
+  - ext: markdown
+    name: Markdown Document
+    role: Viewer
+    icon: icon-doc.icns
+  - ext: mdown
+    name: Markdown Document
+    role: Viewer
+    icon: icon-doc.icns
+  - ext: mkd
+    name: Markdown Document
+    role: Viewer
+    icon: icon-doc.icns
+
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  # Icon resolved from buildResources (resources/icon.icns) — falls back to default if missing.
+  icon: icon.icns
+  extendInfo:
+    NSHumanReadableCopyright: "md.view — Markdown viewer"
+    CFBundleDocumentTypes:
+      - CFBundleTypeName: Markdown Document
+        CFBundleTypeRole: Viewer
+        LSItemContentTypes:
+          - net.daringfireball.markdown
+          - public.markdown
+        CFBundleTypeExtensions:
+          - md
+          - markdown
+          - mdown
+          - mkd
+        LSHandlerRank: Alternate
+    UTImportedTypeDeclarations:
+      - UTTypeIdentifier: net.daringfireball.markdown
+        UTTypeDescription: Markdown Document
+        UTTypeConformsTo:
+          - public.plain-text
+        UTTypeTagSpecification:
+          public.filename-extension:
+            - md
+            - markdown
+            - mdown
+            - mkd
+          public.mime-type:
+            - text/markdown
+
+dmg:
+  title: md.view
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
