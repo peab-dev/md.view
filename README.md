@@ -1,7 +1,7 @@
 # md.view
 
 <p align="center">
-  <img src="resources/img/md-view-logo-long.png" alt="md.view logo" width="300" />
+  <img src="resources/img/md-view-logo-long.png" alt="md.view logo" width="420" />
 </p>
 
 <p align="center">
