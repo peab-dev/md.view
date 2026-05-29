@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>md.view — Markdown, schön gelesen</title>
+<meta name="description" content="Leichtgewichtiger Markdown-Viewer für macOS und Browser. Lokal, privat, pixel-identisch." />
+
+<!-- Fonts: Fraunces (elegant serif display) · Hanken Grotesk (soft body) · JetBrains Mono (.md accent) -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<link rel="icon" type="image/png" href="assets/logo-appbox.png" />
+
+<style>
+  :root {
+    --bg:        #fbfcfe;
+    --bg-soft:   #f4f7fb;
+    --ink:       #1c2430;
+    --ink-soft:  #5a6675;
+    --ink-faint: #8a94a3;
+    --line:      #e6ebf2;
+    --line-soft: #eef2f7;
+    --blue:      #6fa8dc;
+    --blue-deep: #4a8bc9;
+    --blue-wash: #eaf3fb;
+    --white:     #ffffff;
+    --radius:    18px;
+    --shadow-sm: 0 1px 2px rgba(28,36,48,.04), 0 4px 14px rgba(28,36,48,.05);
+    --shadow-lg: 0 8px 24px rgba(28,36,48,.06), 0 30px 70px rgba(74,139,201,.10);
+    --ease:      cubic-bezier(.22,.61,.36,1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: "Hanken Grotesk", -apple-system, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ── Atmosphere: soft blue mesh + grain ─────────────────────── */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background:
+      radial-gradient(60% 50% at 75% -5%, rgba(111,168,220,.16), transparent 70%),
+      radial-gradient(50% 40% at 10% 8%, rgba(111,168,220,.09), transparent 70%),
+      linear-gradient(180deg, var(--bg) 0%, #f7fafd 100%);
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    opacity: .025;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .wrap { width: 100%; max-width: 1120px; margin-inline: auto; padding-inline: 28px; }
+
+  a { color: inherit; text-decoration: none; }
+
+  /* ── Navigation ─────────────────────────────────────────────── */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: saturate(140%) blur(14px);
+    background: rgba(251,252,254,.72);
+    border-bottom: 1px solid transparent;
+    transition: border-color .3s var(--ease), background .3s var(--ease);
+  }
+  nav.scrolled { border-bottom-color: var(--line); background: rgba(251,252,254,.86); }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 70px; }
+  .brand { display: flex; align-items: center; gap: 11px; }
+  .brand .mark {
+    width: 32px; height: 32px; border: 1.6px solid var(--ink);
+    border-radius: 9px; display: grid; place-items: center;
+    font-family: "JetBrains Mono", monospace; font-weight: 500;
+    font-size: 13px; letter-spacing: -.5px;
+  }
+  .brand .mark span { color: var(--blue-deep); }
+  .brand b { font-weight: 500; font-size: 17px; letter-spacing: -.2px; }
+  .brand b i { font-style: normal; color: var(--ink-faint); }
+  .nav-actions { display: flex; align-items: center; gap: 8px; }
+  .nav-link {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 14px; border-radius: 10px; font-size: 14.5px;
+    color: var(--ink-soft); transition: color .2s, background .2s;
+  }
+  .nav-link:hover { color: var(--ink); background: var(--bg-soft); }
+  .nav-link i { width: 17px; height: 17px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 14.5px; font-weight: 500; padding: 10px 17px;
+    border-radius: 11px; transition: transform .2s var(--ease), box-shadow .25s var(--ease), background .2s;
+    cursor: pointer; border: none; white-space: nowrap;
+  }
+  .btn i { width: 17px; height: 17px; }
+  .btn-primary {
+    background: linear-gradient(180deg, var(--blue) 0%, var(--blue-deep) 100%);
+    color: #fff; box-shadow: 0 1px 2px rgba(74,139,201,.3), 0 8px 22px rgba(74,139,201,.28);
+  }
+  .btn-primary:hover { transform: translateY(-1.5px); box-shadow: 0 2px 4px rgba(74,139,201,.32), 0 14px 32px rgba(74,139,201,.34); }
+  .btn-ghost { background: var(--white); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow-sm); }
+  .btn-ghost:hover { transform: translateY(-1.5px); border-color: #d6deea; }
+
+  /* ── Hero ───────────────────────────────────────────────────── */
+  header { padding: 86px 0 72px; }
+  .hero { display: grid; grid-template-columns: 1.04fr 1.16fr; gap: 56px; align-items: center; }
+
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: "JetBrains Mono", monospace; font-size: 12px;
+    letter-spacing: .5px; color: var(--blue-deep);
+    background: var(--blue-wash); border: 1px solid #d9e9f7;
+    padding: 6px 13px; border-radius: 100px; margin-bottom: 26px;
+  }
+  .eyebrow i { width: 14px; height: 14px; }
+
+  h1 {
+    font-family: "Fraunces", serif; font-weight: 300;
+    font-size: clamp(44px, 6vw, 72px); line-height: 1.02;
+    letter-spacing: -1.5px; color: var(--ink); margin-bottom: 22px;
+  }
+  h1 em { font-style: italic; color: var(--blue-deep); }
+  .lede { font-size: 18.5px; color: var(--ink-soft); max-width: 30ch; margin-bottom: 34px; }
+  .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+  .hero-meta { margin-top: 22px; font-size: 13px; color: var(--ink-faint); display: flex; align-items: center; gap: 8px; }
+  .hero-meta i { width: 14px; height: 14px; color: var(--blue); }
+
+  /* ── Mock app window ────────────────────────────────────────── */
+  .window {
+    border-radius: var(--radius); background: var(--white);
+    border: 1px solid var(--line); box-shadow: var(--shadow-lg);
+    overflow: hidden; transform: perspective(1600px) rotateY(-8deg) rotateX(2.5deg);
+    transition: transform .6s var(--ease);
+  }
+  .hero:hover .window { transform: perspective(1600px) rotateY(-3deg) rotateX(1deg); }
+  .titlebar {
+    height: 40px; display: flex; align-items: center; gap: 8px;
+    padding: 0 15px; border-bottom: 1px solid var(--line-soft);
+    background: linear-gradient(180deg, #fdfefe, #f7fafc);
+  }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .dot.r { background: #f1a9a0; } .dot.y { background: #f4cf86; } .dot.g { background: #a9d6a0; }
+  .titlebar .file { margin-left: 10px; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink-faint); }
+  .win-body { display: grid; grid-template-columns: 152px 1fr; min-height: 318px; }
+  .toc { border-right: 1px solid var(--line-soft); background: #fafcfe; padding: 18px 14px; }
+  .toc-h { font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 12px; }
+  .toc-i { font-size: 12.5px; color: var(--ink-soft); padding: 5px 0; border-radius: 6px; }
+  .toc-i.active { color: var(--blue-deep); font-weight: 500; }
+  .toc-i.sub { padding-left: 12px; font-size: 12px; color: var(--ink-faint); }
+  .doc { padding: 26px 28px; }
+  .doc h2 { font-family: "Fraunces", serif; font-weight: 400; font-size: 24px; letter-spacing: -.4px; margin-bottom: 7px; }
+  .doc p { font-size: 13px; color: var(--ink-soft); line-height: 1.7; margin-bottom: 14px; }
+  .doc .code {
+    font-family: "JetBrains Mono", monospace; font-size: 11.5px; line-height: 1.8;
+    background: #f6f9fc; border: 1px solid var(--line-soft); border-radius: 10px;
+    padding: 13px 15px; color: var(--ink-soft); overflow: hidden;
+    white-space: pre; tab-size: 2;
+  }
+  .code .k { color: #4a8bc9; } .code .s { color: #6a9a55; } .code .c { color: var(--ink-faint); }
+  .doc .tag { display: inline-block; font-size: 11px; font-family: "JetBrains Mono", monospace; color: var(--blue-deep); background: var(--blue-wash); padding: 2px 8px; border-radius: 6px; margin-top: 14px; }
+
+  /* ── Features ───────────────────────────────────────────────── */
+  section { padding: 64px 0; }
+  .sec-head { text-align: center; max-width: 540px; margin: 0 auto 50px; }
+  .sec-head h2 { font-family: "Fraunces", serif; font-weight: 300; font-size: clamp(30px,4vw,42px); letter-spacing: -1px; margin-bottom: 12px; }
+  .sec-head p { color: var(--ink-soft); font-size: 16.5px; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .card {
+    background: var(--white); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow-sm);
+    transition: transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: #dce6f1; }
+  .card .ic {
+    width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
+    background: var(--blue-wash); color: var(--blue-deep); margin-bottom: 16px;
+  }
+  .card .ic i { width: 20px; height: 20px; }
+  .card h3 { font-size: 16.5px; font-weight: 600; margin-bottom: 6px; letter-spacing: -.2px; }
+  .card p { font-size: 14px; color: var(--ink-soft); }
+
+  /* ── Dual platform band ─────────────────────────────────────── */
+  .band { background: var(--white); border-block: 1px solid var(--line); }
+  .band .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding-block: 64px; }
+  .plat {
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 30px;
+    display: flex; gap: 18px; align-items: flex-start; transition: border-color .3s, transform .3s var(--ease);
+  }
+  .plat:hover { border-color: var(--blue); transform: translateY(-2px); }
+  .plat .ic { width: 46px; height: 46px; flex: none; border-radius: 13px; display: grid; place-items: center; background: var(--bg-soft); color: var(--ink); }
+  .plat .ic i { width: 22px; height: 22px; }
+  .plat h3 { font-size: 18px; letter-spacing: -.3px; margin-bottom: 5px; }
+  .plat p { font-size: 14px; color: var(--ink-soft); margin-bottom: 14px; }
+  .plat a { font-size: 13.5px; font-weight: 500; color: var(--blue-deep); display: inline-flex; align-items: center; gap: 5px; }
+  .plat a i { width: 15px; height: 15px; transition: transform .2s; }
+  .plat a:hover i { transform: translateX(3px); }
+
+  /* ── Final CTA ──────────────────────────────────────────────── */
+  .final { text-align: center; }
+  .final .glow {
+    border-radius: 28px; padding: 70px 30px;
+    background:
+      radial-gradient(70% 120% at 50% 0%, rgba(111,168,220,.14), transparent 70%),
+      var(--white);
+    border: 1px solid var(--line); box-shadow: var(--shadow-lg);
+  }
+  .final img { width: 64px; height: 64px; margin-bottom: 22px; }
+  .final h2 { font-family: "Fraunces", serif; font-weight: 300; font-size: clamp(32px,4.5vw,48px); letter-spacing: -1px; margin-bottom: 14px; }
+  .final p { color: var(--ink-soft); font-size: 17px; margin-bottom: 30px; }
+  .final .hero-cta { justify-content: center; }
+
+  /* ── Footer ─────────────────────────────────────────────────── */
+  footer { padding: 44px 0 60px; }
+  .foot { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 28px; }
+  .foot .l { font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--ink-faint); }
+  .foot .l span { color: var(--blue-deep); }
+  .foot .r { display: flex; gap: 20px; font-size: 13.5px; color: var(--ink-soft); }
+  .foot .r a:hover { color: var(--ink); }
+
+  /* ── Reveal on load ─────────────────────────────────────────── */
+  .reveal { opacity: 0; transform: translateY(16px); animation: rise .8s var(--ease) forwards; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  .d1 { animation-delay: .05s; } .d2 { animation-delay: .15s; }
+  .d3 { animation-delay: .25s; } .d4 { animation-delay: .35s; } .d5 { animation-delay: .5s; }
+
+  /* scroll reveal */
+  .obs { opacity: 0; transform: translateY(22px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+  .obs.in { opacity: 1; transform: none; }
+
+  @media (max-width: 880px) {
+    .hero { grid-template-columns: 1fr; gap: 44px; }
+    .window { transform: none; }
+    .hero:hover .window { transform: none; }
+    .grid { grid-template-columns: 1fr; }
+    .band .wrap { grid-template-columns: 1fr; }
+    .lede { max-width: none; }
+    .nav-link.hide { display: none; }
+    .foot { flex-direction: column; gap: 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal, .obs { animation: none !important; opacity: 1 !important; transform: none !important; transition: none !important; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top">
+      <span class="mark"><span>.</span>md</span>
+      <b>md<i>.</i>view</b>
+    </a>
+    <div class="nav-actions">
+      <a class="nav-link hide" href="#features">Features</a>
+      <a class="nav-link" href="https://github.com/peab-dev/md.view" target="_blank" rel="noopener">
+        <i data-lucide="github"></i> GitHub
+      </a>
+      <a class="btn btn-primary" href="https://github.com/peab-dev/md.view/releases" target="_blank" rel="noopener">
+        <i data-lucide="arrow-down-to-line"></i> Download
+      </a>
+    </div>
+  </div>
+</nav>
+
+<a id="top"></a>
+<header>
+  <div class="wrap hero">
+    <div class="hero-copy">
+      <span class="eyebrow reveal d1"><i data-lucide="sparkles"></i> macOS · Browser</span>
+      <h1 class="reveal d2">Markdown,<br /><em>schön gelesen.</em></h1>
+      <p class="lede reveal d3">Ein leichter Viewer. Lokal, privat, pixel-identisch über App und Browser.</p>
+      <div class="hero-cta reveal d4">
+        <a class="btn btn-primary" href="https://github.com/peab-dev/md.view/releases" target="_blank" rel="noopener">
+          <i data-lucide="apple"></i> Für macOS laden
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/peab-dev/md.view" target="_blank" rel="noopener">
+          <i data-lucide="github"></i> Auf GitHub ansehen
+        </a>
+      </div>
+      <div class="hero-meta reveal d5">
+        <i data-lucide="shield-check"></i> Open Source · keine Uploads · keine Telemetrie
+      </div>
+    </div>
+
+    <div class="hero-visual reveal d4">
+      <div class="window">
+        <div class="titlebar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="file">README.md</span>
+        </div>
+        <div class="win-body">
+          <aside class="toc">
+            <div class="toc-h">Inhalt</div>
+            <div class="toc-i active">Übersicht</div>
+            <div class="toc-i">Installation</div>
+            <div class="toc-i sub">macOS</div>
+            <div class="toc-i sub">Browser</div>
+            <div class="toc-i">Features</div>
+            <div class="toc-i">Lizenz</div>
+          </aside>
+          <div class="doc">
+            <h2>Übersicht</h2>
+            <p>Ein gemeinsamer Rendering-Core sorgt für identische Darstellung — egal ob App oder Browser.</p>
+            <div class="code"><span class="c"># Quickstart</span>
+<span class="k">npm</span> install
+<span class="k">npm</span> run dev:web
+<span class="c"># → </span><span class="s">localhost:5173</span></div>
+            <span class="tag">GFM · Shiki · Dark Mode</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head obs">
+      <h2>Leicht. Genau. Vertraut.</h2>
+      <p>Alles, was ein Markdown-Viewer braucht — nichts, was er nicht braucht.</p>
+    </div>
+    <div class="grid">
+      <div class="card obs">
+        <div class="ic"><i data-lucide="code-xml"></i></div>
+        <h3>Shiki Highlighting</h3>
+        <p>Syntax in VS-Code-Qualität. Präzise Grammatiken, sauberer Code.</p>
+      </div>
+      <div class="card obs">
+        <div class="ic"><i data-lucide="list-tree"></i></div>
+        <h3>TOC-Sidebar</h3>
+        <p>Klick-Scroll und Scroll-Spy. Lange Dokumente bleiben navigierbar.</p>
+      </div>
+      <div class="card obs">
+        <div class="ic"><i data-lucide="refresh-cw"></i></div>
+        <h3>Live-Reload</h3>
+        <p>Datei speichern, sofort sehen. Ohne Klick, ohne Neuladen.</p>
+      </div>
+      <div class="card obs">
+        <div class="ic"><i data-lucide="moon-star"></i></div>
+        <h3>Dark Mode</h3>
+        <p>Folgt automatisch dem System. Tag und Nacht angenehm.</p>
+      </div>
+      <div class="card obs">
+        <div class="ic"><i data-lucide="lock"></i></div>
+        <h3>Lokal & privat</h3>
+        <p>Dateien verlassen das Gerät nie. Keine Uploads, keine Server.</p>
+      </div>
+      <div class="card obs">
+        <div class="ic"><i data-lucide="github"></i></div>
+        <h3>GitHub-Style</h3>
+        <p>Vertraute, ruhige Typografie. Tabellen, Task-Lists, Footnotes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="band">
+  <div class="wrap">
+    <div class="plat obs">
+      <div class="ic"><i data-lucide="monitor"></i></div>
+      <div>
+        <h3>Mac-App</h3>
+        <p>Native <code>.app</code> mit Drag &amp; Drop, ⌘O und gebrandetem Dateisymbol im Finder.</p>
+        <a href="https://github.com/peab-dev/md.view/releases" target="_blank" rel="noopener">Herunterladen <i data-lucide="arrow-right"></i></a>
+      </div>
+    </div>
+    <div class="plat obs">
+      <div class="ic"><i data-lucide="globe"></i></div>
+      <div>
+        <h3>Browser</h3>
+        <p>Datei hineinziehen — fertig. Alles passiert lokal im Browser, ohne Installation.</p>
+        <a href="https://github.com/peab-dev/md.view" target="_blank" rel="noopener">Mehr erfahren <i data-lucide="arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="final">
+  <div class="wrap">
+    <div class="glow obs">
+      <img src="assets/logo-appbox.png" alt="md.view" />
+      <h2>Bereit, wenn du es bist.</h2>
+      <p>Kostenlos, quelloffen, in einer Minute installiert.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="https://github.com/peab-dev/md.view/releases" target="_blank" rel="noopener">
+          <i data-lucide="arrow-down-to-line"></i> Download
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/peab-dev/md.view" target="_blank" rel="noopener">
+          <i data-lucide="star"></i> Star auf GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div class="l"><span>.</span>md<i style="color:var(--ink-faint);font-style:normal">view</i> — © 2026</div>
+    <div class="r">
+      <a href="https://github.com/peab-dev/md.view" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/peab-dev/md.view/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/peab-dev/md.view#readme" target="_blank" rel="noopener">Docs</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+  lucide.createIcons();
+
+  // nav border on scroll
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);
+  onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
+
+  // scroll-reveal
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        e.target.style.transitionDelay = (i % 3 * 70) + 'ms';
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: .14, rootMargin: '0px 0px -8% 0px' });
+  document.querySelectorAll('.obs').forEach((el) => io.observe(el));
+</script>
+</body>
+</html>
