@@ -80,16 +80,10 @@
   }
   nav.scrolled { border-bottom-color: var(--line); background: rgba(251,252,254,.86); }
   .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 70px; }
-  .brand { display: flex; align-items: center; gap: 11px; }
-  .brand .mark {
-    width: 32px; height: 32px; border: 1.6px solid var(--ink);
-    border-radius: 9px; display: grid; place-items: center;
-    font-family: "JetBrains Mono", monospace; font-weight: 500;
-    font-size: 13px; letter-spacing: -.5px;
-  }
-  .brand .mark span { color: var(--blue-deep); }
-  .brand b { font-weight: 500; font-size: 17px; letter-spacing: -.2px; }
-  .brand b i { font-style: normal; color: var(--ink-faint); }
+  .brand { display: flex; align-items: center; }
+  .brand img { height: 30px; width: auto; display: block; }
+  .brand:hover img { opacity: .82; }
+  .brand img { transition: opacity .2s; }
   .nav-actions { display: flex; align-items: center; gap: 8px; }
   .nav-link {
     display: inline-flex; align-items: center; gap: 7px;
@@ -261,9 +255,8 @@
 
 <nav id="nav">
   <div class="wrap nav-inner">
-    <a class="brand" href="#top">
-      <span class="mark"><span>.</span>md</span>
-      <b>md<i>.</i>view</b>
+    <a class="brand" href="#top" aria-label="md.view">
+      <img src="assets/logo-long.png" alt="md.view" />
     </a>
     <div class="nav-actions">
       <a class="nav-link hide" href="#features">Features</a>
