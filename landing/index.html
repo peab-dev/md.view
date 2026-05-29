@@ -81,9 +81,8 @@
   nav.scrolled { border-bottom-color: var(--line); background: rgba(251,252,254,.86); }
   .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 70px; }
   .brand { display: flex; align-items: center; }
-  .brand img { height: 30px; width: auto; display: block; }
+  .brand img { height: 34px; width: auto; display: block; transition: opacity .2s; }
   .brand:hover img { opacity: .82; }
-  .brand img { transition: opacity .2s; }
   .nav-actions { display: flex; align-items: center; gap: 8px; }
   .nav-link {
     display: inline-flex; align-items: center; gap: 7px;
@@ -212,7 +211,7 @@
       var(--white);
     border: 1px solid var(--line); box-shadow: var(--shadow-lg);
   }
-  .final img { width: 64px; height: 64px; margin-bottom: 22px; }
+  .final img { height: 52px; width: auto; margin-bottom: 24px; }
   .final h2 { font-family: "Fraunces", serif; font-weight: 300; font-size: clamp(32px,4.5vw,48px); letter-spacing: -1px; margin-bottom: 14px; }
   .final p { color: var(--ink-soft); font-size: 17px; margin-bottom: 30px; }
   .final .hero-cta { justify-content: center; }
@@ -271,7 +270,7 @@
 <nav id="nav">
   <div class="wrap nav-inner">
     <a class="brand" href="#top" aria-label="md.view">
-      <img src="assets/logo-long.png" alt="md.view" />
+      <img src="assets/logo-appbox.png" alt="md.view" />
     </a>
     <div class="nav-actions">
       <a class="nav-link hide" href="#features">Features</a>
@@ -401,7 +400,7 @@
 <section class="final">
   <div class="wrap">
     <div class="glow obs">
-      <img src="assets/logo-appbox.png" alt="md.view" />
+      <img src="assets/logo-long.png" alt="md.view" />
       <h2>Bereit, wenn du es bist.</h2>
       <p>Kostenlos, quelloffen, in einer Minute installiert.</p>
       <div class="hero-cta">
